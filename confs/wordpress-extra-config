@@ -1,0 +1,58 @@
+/** Sets default theme */
+define( 'WP_DEFAULT_THEME', getenv_docker('WP_DEFAULT_THEME', 'twentytwentytwo') );
+
+/** Enables cache */
+define( 'WP_CACHE', getenv_docker('WP_CACHE', false) );
+
+/** Disables auto updates on core */
+define( 'WP_AUTO_UPDATE_CORE', getenv_docker('WP_AUTO_UPDATE_CORE', true) );
+
+/** Disables WP cronjobs and uses crontab */
+define( 'DISABLE_WP_CRON', getenv_docker('WP_AUTO_UPDATE_CORE', true) );
+
+/** Control script concatenation */
+define( 'CONCATENATE_SCRIPTS', !!getenv_docker('CONCATENATE_SCRIPTS', true) );
+
+/** Allow CLI using root user by default */
+define( 'WP_CLI_ALLOW_ROOT', getenv_docker('WP_CLI_ALLOW_ROOT', true) );
+
+/**#@+
+ * SMTP Settings
+ */
+define( 'SMTP_HOST', getenv_docker('SMTP_HOST', 'email-smtp.us-east-1.amazonaws.com') );
+define( 'SMTP_USERNAME', getenv_docker('SMTP_USERNAME', '') );
+define( 'SMTP_PASSWORD', getenv_docker('SMTP_PASSWORD', '') );
+define( 'SMTP_AUTH', getenv_docker('SMTP_AUTH', true) );
+define( 'SMTP_PORT', getenv_docker('SMTP_PORT', '587') );
+define( 'SMTP_SECURE', getenv_docker('SMTP_SECURE', 'tls') );
+define( 'SMTP_FROM', getenv_docker('SMTP_FROM', '') );
+define( 'SMTP_NAME', getenv_docker('SMTP_NAME', '') );
+
+/**#@+
+ * JWT Settings
+ */
+define( 'JWT_AUTH_SECRET_KEY', getenv_docker('JWT_AUTH_SECRET_KEY', '') );
+
+/**#@+
+ * S3 Uploads settings
+ */
+define( 'S3_UPLOADS_BUCKET', getenv_docker('S3_UPLOADS_BUCKET', '') );
+define( 'S3_UPLOADS_REGION', getenv_docker('S3_UPLOADS_REGION', 'eu-west-1') );
+define( 'S3_UPLOADS_KEY', getenv_docker('S3_UPLOADS_KEY', '') );
+define( 'S3_UPLOADS_SECRET', getenv_docker('S3_UPLOADS_SECRET', '') );
+define( 'S3_UPLOADS_USE_INSTANCE_PROFILE', getenv_docker('S3_UPLOADS_USE_INSTANCE_PROFILE', true) );
+define( 'S3_UPLOADS_HTTP_CACHE_CONTROL', getenv_docker('S3_UPLOADS_HTTP_CACHE_CONTROL', 365 * 24 * 60 * 60) );
+define( 'S3_UPLOADS_BUCKET_URL', getenv_docker('S3_UPLOADS_BUCKET_URL', '') );
+define( 'S3_UPLOADS_OBJECT_ACL', getenv_docker('S3_UPLOADS_OBJECT_ACL', 'private') );
+
+/**#@+
+ * Imagery Cloud settings
+ */
+define( 'WP_IMAGERY_CLOUD_TOKEN', getenv_docker('WP_IMAGERY_CLOUD_TOKEN', '') );
+
+/**#@+
+ * Include compose autoload, if exists
+ */
+if( file_exists(__DIR__ . '/vendor/autoload.php') ) :
+include_once __DIR__ . '/vendor/autoload.php';
+endif;

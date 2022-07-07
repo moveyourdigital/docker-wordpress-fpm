@@ -1,0 +1,277 @@
+version: "3.8"
+
+# Create the following secrets:
+# ----------------------------
+# - mariadb-password [2]
+# - mariadb-node1-001-init.sql [1]
+# - mariadb-node2-001-init.sql [1]
+# - maxscale-2-nodes.cnf [1]
+# - s3-uploads-key [3]
+# - s3-uploads-secret [3]
+#
+# Create the following configs:
+# ----------------------------
+# - nginx-wordpress-upstream.conf [1]
+# - wordpress-6.0-extra.conf [1]
+#
+# [1] copy from provided file
+# [2] generate a random password
+# [3] provided by AWS IAM
+
+
+services:
+  mariadb-node1:
+    image: mariadb:10.6
+    networks:
+      - mariadb
+
+    secrets:
+      - mariadb-password
+      - source: mariadb-node1-001-init.sql
+        target: /docker-entrypoint-initdb.d/001-init.sql
+
+    volumes:
+      - mariadb_node1:/var/lib/mysql
+
+    environment:
+      MYSQL_USER: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_PASSWORD_FILE: /run/secrets/mariadb-password
+
+    command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3001 --log-slave-updates
+
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == node1
+
+      restart_policy:
+        condition: on-failure
+
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  mariadb-node2:
+    image: mariadb:10.6
+    networks:
+      - mariadb
+
+    secrets:
+      - mariadb-password
+      - source: mariadb-node2-001-init.sql
+        target: /docker-entrypoint-initdb.d/001-init.sql
+
+    volumes:
+      - mariadb_node2:/var/lib/mysql
+
+    environment:
+      MYSQL_USER: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_PASSWORD_FILE: /run/secrets/mariadb-password
+
+    command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3002 --log-slave-updates
+
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == node2
+
+      restart_policy:
+        condition: on-failure
+
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  mariadb:
+    image: mariadb/maxscale:2.5
+
+    secrets:
+      - source: maxscale-2-nodes.cnf
+        target: /etc/maxscale.cnf
+
+    networks:
+      - mariadb
+      - maxscale
+
+    command: maxscale -d -U maxscale -l stdout -s no --debug=redirect-output-to-file
+
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  memcached:
+    image: memcached:latest
+
+    networks:
+      - memcached
+
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  nginx:
+    image: moveyourdigital/nginx
+    init: true
+
+    volumes:
+      - html:/var/www/html:ro
+
+    environment:
+      NGINX_HOST: 127.0.0.1
+      NGINX_PORT: 80
+      FASTCGI_HOST: wordpress
+      FASTCGI_PORT: 9000
+
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+
+    networks:
+      - public
+
+    configs:
+      - source: nginx-wordpress-upstream.conf
+        target: /etc/nginx/templates/default.conf.template
+
+    command:
+      [
+        "wait-for-it",
+        "-t",
+        "0",
+        "wordpress:9000",
+        "--",
+        "/docker-entrypoint.sh",
+        "nginx",
+        "-g",
+        "daemon off;",
+      ]
+
+    deploy:
+      replicas: 2
+      placement:
+        preferences:
+          - spread: node.id
+
+      rollback_config:
+        parallelism: 1
+        order: start-first
+
+      update_config:
+        parallelism: 1
+        order: start-first
+
+  wordpress:
+    image: moveyourdigital/wordpress:6.0-php8.0-fpm
+    init: true
+
+    environment:
+      WORDPRESS_DB_HOST: mariadb
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      S3_UPLOADS_BUCKET: my-s3-bucket
+      S3_UPLOADS_KEY_FILE: /run/secrets/s3-uploads-key
+      S3_UPLOADS_SECRET_FILE: /run/secrets/s3-uploads-secret
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/mariadb-password
+      WORDPRESS_CONFIG_EXTRA_FILE: /var/www/html/wp-extra-config.php
+
+    secrets:
+      - mariadb-password
+      - s3-uploads-key
+      - s3-uploads-secret
+
+    configs:
+      - source: wordpress-6.0-extra.conf
+        target: /var/www/html/wp-extra-config.php
+
+    volumes:
+      - html:/var/www/html
+
+    networks:
+      - memcached
+      - maxscale
+      - public
+
+    deploy:
+      replicas: 2
+
+      placement:
+        preferences:
+          - spread: node.id
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        window: 60s
+
+      rollback_config:
+        parallelism: 1
+        order: start-first
+
+      update_config:
+        parallelism: 1
+        order: start-first
+
+# Internal networks do not have
+# external access (internet)
+networks:
+  mariadb:
+    internal: true
+
+  maxscale:
+    internal: true
+
+  memcached:
+    internal: true
+
+  public:
+
+volumes:
+  mariadb_node1:
+  mariadb_node2:
+  html:
+
+configs:
+  nginx-wordpress-upstream.conf:
+    external: true
+
+  wordpress-6.0-extra.conf:
+    external: true
+
+secrets:
+  mariadb-password:
+    external: true
+
+  mariadb-node1-001-init.sql:
+    external: true
+
+  mariadb-node2-001-init.sql:
+    external: true
+
+  maxscale-2-nodes.cnf:
+    external: true
+
+  s3-uploads-key:
+    external: true
+
+  s3-uploads-secret:
+    external: true
