@@ -1,6 +1,6 @@
 # WordPress for Docker (extends official image)
 
-The official image works as-is for a simple WordPress installation, however, what happens if you want to deploy WordPress in Docker Swarm for scalling?
+The official image works well for a simple WordPress installation, however, what happens if you want to deploy WordPress in Docker Swarm and scale it for more than two instances?
 
 This `Dockerfile` has built-in *steroids* to handle scalling and includes:
 - Uses PHP-FPM 8.0
