@@ -6,7 +6,7 @@
  * Plugin URI:      https://gist.github.com/lightningspirit/73df703f0db1fef14bd30d64ea1e8631
  * Author:          Move Your Digital, Inc.
  * Author URI:      https://moveyourdigital.com
- * Version:         0.2.2
+ * Version:         0.3.0
  *
  * @package         Autoload
  */
@@ -28,6 +28,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /**#@+
  * Include compose autoload, if exists
  */
-if( file_exists(ABSPATH . '/vendor/autoload.php') ) :
-  include_once ABSPATH . '/vendor/autoload.php';
+if (file_exists(constant('ABSPATH') . '/vendor/autoload.php')) :
+  include_once constant('ABSPATH') . '/vendor/autoload.php';
 endif;
